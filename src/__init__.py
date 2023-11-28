@@ -34,31 +34,36 @@ Usage:
 from __future__ import absolute_import
 
 import ctypes
+import distutils.sysconfig as sysconfig
 import errno
 import os
-import distutils.sysconfig as sysconfig
 
 from .ev import *
 
 _UINPUT_MAX_NAME_SIZE = 80
 _ABS_CNT = ABS_MAX[1] + 1
 
+
 class _struct_input_id(ctypes.Structure):
-    _fields_ = [("bustype", ctypes.c_int16),
-                ("vendor", ctypes.c_int16),
-                ("product", ctypes.c_int16),
-                ("version", ctypes.c_int16),
-                ]
+    _fields_ = [
+        ("bustype", ctypes.c_int16),
+        ("vendor", ctypes.c_int16),
+        ("product", ctypes.c_int16),
+        ("version", ctypes.c_int16),
+    ]
+
 
 class _struct_uinput_user_dev(ctypes.Structure):
-    _fields_ = [("name", ctypes.c_char * _UINPUT_MAX_NAME_SIZE),
-                ("id", _struct_input_id),
-                ("ff_effects_max", ctypes.c_int),
-                ("absmax", ctypes.c_int * _ABS_CNT),
-                ("absmin", ctypes.c_int * _ABS_CNT),
-                ("absfuzz", ctypes.c_int * _ABS_CNT),
-                ("absflat", ctypes.c_int * _ABS_CNT),
-                ]
+    _fields_ = [
+        ("name", ctypes.c_char * _UINPUT_MAX_NAME_SIZE),
+        ("id", _struct_input_id),
+        ("ff_effects_max", ctypes.c_int),
+        ("absmax", ctypes.c_int * _ABS_CNT),
+        ("absmin", ctypes.c_int * _ABS_CNT),
+        ("absfuzz", ctypes.c_int * _ABS_CNT),
+        ("absflat", ctypes.c_int * _ABS_CNT),
+    ]
+
 
 def _open_error_handler(result, fn, args):
     if result == -1:
@@ -72,6 +77,7 @@ def _open_error_handler(result, fn, args):
         raise RuntimeError("unexpected return value: %s" % result)
     return result
 
+
 def _error_handler(result, fn, args):
     if result == -1:
         code = ctypes.get_errno()
@@ -80,10 +86,16 @@ def _error_handler(result, fn, args):
         raise RuntimeError("unexpected return value: %s" % result)
     return result
 
+
 def fdopen():
     return _libsuinput.suinput_open()
 
-_libsuinput_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "_libsuinput" + sysconfig.get_config_var("EXT_SUFFIX")))
+
+_libsuinput_path = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__), "..", "_libsuinput" + sysconfig.get_config_var("EXT_SUFFIX")
+    )
+)
 _libsuinput = ctypes.CDLL(_libsuinput_path, use_errno=True)
 _libsuinput.suinput_open.errcheck = _open_error_handler
 _libsuinput.suinput_enable_event.errcheck = _error_handler
@@ -96,56 +108,58 @@ _libsuinput.suinput_syn.errcheck = _error_handler
 _libsuinput.suinput_destroy.errcheck = _error_handler
 
 _CHAR_MAP = {
-    "a":  KEY_A,
-    "b":  KEY_B,
-    "c":  KEY_C,
-    "d":  KEY_D,
-    "e":  KEY_E,
-    "f":  KEY_F,
-    "g":  KEY_G,
-    "h":  KEY_H,
-    "i":  KEY_I,
-    "j":  KEY_J,
-    "k":  KEY_K,
-    "l":  KEY_L,
-    "m":  KEY_M,
-    "n":  KEY_N,
-    "o":  KEY_O,
-    "p":  KEY_P,
-    "q":  KEY_Q,
-    "r":  KEY_R,
-    "s":  KEY_S,
-    "t":  KEY_T,
-    "u":  KEY_U,
-    "v":  KEY_V,
-    "w":  KEY_W,
-    "x":  KEY_X,
-    "y":  KEY_Y,
-    "z":  KEY_Z,
-    "1":  KEY_1,
-    "2":  KEY_2,
-    "3":  KEY_3,
-    "4":  KEY_4,
-    "5":  KEY_5,
-    "6":  KEY_6,
-    "7":  KEY_7,
-    "8":  KEY_8,
-    "9":  KEY_9,
-    "0":  KEY_0,
+    "a": KEY_A,
+    "b": KEY_B,
+    "c": KEY_C,
+    "d": KEY_D,
+    "e": KEY_E,
+    "f": KEY_F,
+    "g": KEY_G,
+    "h": KEY_H,
+    "i": KEY_I,
+    "j": KEY_J,
+    "k": KEY_K,
+    "l": KEY_L,
+    "m": KEY_M,
+    "n": KEY_N,
+    "o": KEY_O,
+    "p": KEY_P,
+    "q": KEY_Q,
+    "r": KEY_R,
+    "s": KEY_S,
+    "t": KEY_T,
+    "u": KEY_U,
+    "v": KEY_V,
+    "w": KEY_W,
+    "x": KEY_X,
+    "y": KEY_Y,
+    "z": KEY_Z,
+    "1": KEY_1,
+    "2": KEY_2,
+    "3": KEY_3,
+    "4": KEY_4,
+    "5": KEY_5,
+    "6": KEY_6,
+    "7": KEY_7,
+    "8": KEY_8,
+    "9": KEY_9,
+    "0": KEY_0,
     "\t": KEY_TAB,
     "\n": KEY_ENTER,
-    " ":  KEY_SPACE,
-    ".":  KEY_DOT,
-    ",":  KEY_COMMA,
-    "/":  KEY_SLASH,
+    " ": KEY_SPACE,
+    ".": KEY_DOT,
+    ",": KEY_COMMA,
+    "/": KEY_SLASH,
     "\\": KEY_BACKSLASH,
-    }
+}
+
 
 def _chars_to_events(chars):
     events = []
     for char in chars:
         events.append(_CHAR_MAP.get(char))
     return events
+
 
 class Device(object):
 
@@ -164,8 +178,9 @@ class Device(object):
     `version` - version identifier
     """
 
-    def __init__(self, events, name="python-uinput",
-                 bustype=0, vendor=0, product=0, version=0, fd=None):
+    def __init__(
+        self, events, name="python-uinput", bustype=0, vendor=0, product=0, version=0, fd=None
+    ):
         self.__events = events
         self.__uinput_fd = -1
         self.__name = name.encode()
@@ -187,6 +202,7 @@ class Device(object):
                 user_dev.absflat[ev_code] = absflat
 
         _libsuinput.suinput_create(self.__uinput_fd, ctypes.pointer(user_dev))
+        self.__emit_stack = []
 
     def syn(self):
         """Fire all emitted events.
@@ -202,6 +218,9 @@ class Device(object):
 
         The call above appears as a single (+1, +1) event.
         """
+        while len(self.__emit_stack) > 0:
+            emit_fun, args = self.__emit_stack.pop(0)
+            emit_fun(*args)
 
         _libsuinput.suinput_syn(self.__uinput_fd)
 
@@ -219,7 +238,10 @@ class Device(object):
         """
 
         ev_type, ev_code = event
-        _libsuinput.suinput_emit(self.__uinput_fd, ev_type, ev_code, value)
+        # _libsuinput.suinput_emit(self.__uinput_fd, ev_type, ev_code, value)
+        self.__emit_stack.append(
+            (_libsuinput.suinput_emit, (self.__uinput_fd, ev_type, ev_code, value))
+        )
         if syn:
             self.syn()
 
@@ -234,7 +256,8 @@ class Device(object):
         ev_type, ev_code = event
         if ev_type != 0x01:
             raise ValueError("event must be of type KEY or BTN")
-        _libsuinput.suinput_emit_click(self.__uinput_fd, ev_code)
+        # _libsuinput.suinput_emit_click(self.__uinput_fd, ev_code)
+        self.__emit_stack.append((_libsuinput.suinput_emit_click, (self.__uinput_fd, ev_code)))
         if syn:
             self.syn()
 
@@ -252,7 +275,10 @@ class Device(object):
             raise ValueError("all events must be of type KEY or BTN")
 
         arrtype = ctypes.c_uint16 * len(events)
-        _libsuinput.suinput_emit_combo(self.__uinput_fd, arrtype(*ev_codes), len(events))
+        # _libsuinput.suinput_emit_combo(self.__uinput_fd, arrtype(*ev_codes), len(events))
+        self.__emit_stack.append(
+            (_libsuinput.suinput_emit_combo, (self.__uinput_fd, arrtype(*ev_codes), len(events)))
+        )
         if syn:
             self.syn()
 
@@ -282,7 +308,7 @@ class Device(object):
 
     def __exit__(self, *args):
         self.destroy()
-        return False ## Not handling any exceptions.
+        return False  ## Not handling any exceptions.
 
     def __del__(self):
         if self.__uinput_fd >= 0:
